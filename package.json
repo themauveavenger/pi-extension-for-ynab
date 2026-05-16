@@ -1,0 +1,63 @@
+{
+  "name": "pi-extension-for-ynab",
+  "version": "0.1.0",
+  "description": "Pi extension that adds tools for working with a personal YNAB account.",
+  "license": "MIT",
+  "author": "themauveavenger",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    ".env.example"
+  ],
+  "keywords": [
+    "pi-package",
+    "ynab"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepare": "npm run build",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "pi": {
+    "extensions": [
+      "./dist/index.js"
+    ]
+  },
+  "dependencies": {
+    "currency.js": "2.0.4",
+    "date-fns": "4.1.0",
+    "mathjs": "15.2.0",
+    "ynab": "4.1.0"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-coding-agent": "0.74.0",
+    "@eslint/js": "10.0.1",
+    "@stylistic/eslint-plugin": "5.10.0",
+    "@tsconfig/node-ts": "23.6.4",
+    "@tsconfig/node24": "24.0.4",
+    "@types/node": "25.6.2",
+    "eslint": "10.3.0",
+    "globals": "17.6.0",
+    "tsx": "4.21.0",
+    "typebox": "1.1.38",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.59.3",
+    "vitest": "4.1.5"
+  }
+}
