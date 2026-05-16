@@ -18,15 +18,26 @@ export async function resolveAccountId(
   return match?.id ?? null;
 }
 
+export async function getCategoryIdMap(
+  ynabAPI: ynab.API,
+  budgetId: string
+): Promise<Map<string, string>> {
+  const response = await ynabAPI.categories.getCategories(budgetId);
+  const categories = response.data.category_groups.flatMap(g => g.categories);
+  return new Map(
+    categories
+      .filter(c => !c.deleted && !c.hidden)
+      .map(c => [c.name, c.id])
+  );
+}
+
 export async function resolveCategoryId(
   ynabAPI: ynab.API,
   budgetId: string,
   name: string
 ): Promise<string | null> {
-  const response = await ynabAPI.categories.getCategories(budgetId);
-  const categories = response.data.category_groups.flatMap(g => g.categories);
-  const match = categories.find(c => !c.deleted && !c.hidden && c.name === name);
-  return match?.id ?? null;
+  const categories = await getCategoryIdMap(ynabAPI, budgetId);
+  return categories.get(name) ?? null;
 }
 
 export async function resolvePayeeId(
@@ -73,9 +84,10 @@ export async function validateAndResolveSplits(
     errors.push('Only one split may have a null amount (calculated from remainder).');
   }
 
+  const categories = await getCategoryIdMap(ynabAPI, budgetId);
   const resolvedCategories: ({ id: string; name: string } | null)[] = [];
   for (const split of splits) {
-    const id = await resolveCategoryId(ynabAPI, budgetId, split.category);
+    const id = categories.get(split.category);
     if (!id) {
       errors.push(`Category "${split.category}" not found.`);
       resolvedCategories.push(null);

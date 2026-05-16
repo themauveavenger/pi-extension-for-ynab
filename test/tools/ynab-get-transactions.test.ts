@@ -49,6 +49,7 @@ describe('ynab_get_transactions', () => {
     });
 
     const result = await tool.execute('call-1', { budgetId: 'budget-123', sinceDate: '2026-04-01', unapproved: true });
+    expect(ynabAPI.transactions.getTransactions).toHaveBeenCalledWith('budget-123', '2026-04-01', 'unapproved');
     expect(result.content[0].text).toContain('Unapproved filter: true');
     expect(result.content[0].text).toContain('Unapproved Store');
     expect(result.content[0].text).not.toContain('Approved Store');
@@ -90,8 +91,27 @@ describe('ynab_get_transactions', () => {
       }
     });
 
-    const result = await tool.execute('call-1', { budgetId: 'budget-123', sinceDate: '2026-04-01' });
-    expect(result.content[0].text).toContain('- 2026-04-15 | -$25.00 | Coffee Shop | Beverages | Checking | cleared | approved');
+    const result = await tool.execute('call-1', { budgetId: 'budget-123', sinceDate: '2026-04-01', verbose: true });
+    expect(result.content[0].text).toContain('- txn-1 | 2026-04-15 | -$25.00 | Coffee Shop | Beverages | Checking | cleared | approved');
+  });
+
+  it('sorts newest first and limits compact output by default', async () => {
+    const { ynabAPI, tool } = setup();
+    ynabAPI.transactions.getTransactions.mockResolvedValue({
+      data: {
+        transactions: [
+          makeTransactionDetail({ id: 'old', date: '2026-04-01', payee_name: 'Old Store' }),
+          makeTransactionDetail({ id: 'new', date: '2026-04-30', payee_name: 'New Store' })
+        ]
+      }
+    });
+
+    const result = await tool.execute('call-1', { budgetId: 'budget-123', sinceDate: '2026-04-01', limit: 1 });
+    const text = result.content[0].text;
+    expect(text).toContain('Showing 1 of 2 (limit 1)');
+    expect(text).toContain('- new | 2026-04-30');
+    expect(text).not.toContain('Old Store');
+    expect(text).not.toContain('| Checking | cleared | approved');
   });
 
   it('formats 404 error when budget not found', async () => {

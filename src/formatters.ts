@@ -1,12 +1,17 @@
 import type * as ynab from 'ynab';
 import { formatMilliunits, buildPayeeStats, daysBetween } from './utils.js';
 
-export function formatTransactionLine(t: ynab.TransactionDetail): string {
+export function formatTransactionLine(t: ynab.TransactionDetail, verbose = false): string {
   const amount = formatMilliunits(t.amount);
   const payee = t.payee_name ?? '(none)';
   const category = t.category_name ?? '(none)';
+  const base = `- ${t.id} | ${t.date} | ${amount} | ${payee} | ${category}`;
+
+  if (!verbose) return base;
+
   const approved = t.approved ? 'approved' : 'unapproved';
-  return `- ${t.date} | ${amount} | ${payee} | ${category} | ${t.account_name} | ${t.cleared} | ${approved}`;
+  const memo = t.memo ? ` | memo: ${t.memo}` : '';
+  return `${base} | ${t.account_name} | ${t.cleared} | ${approved}${memo}`;
 }
 
 export function formatTransactionsResponse(
@@ -14,10 +19,13 @@ export function formatTransactionsResponse(
   sinceDate: string,
   unapproved: boolean | undefined,
   uncleared: boolean | undefined,
-  transactions: ynab.TransactionDetail[]
+  transactions: ynab.TransactionDetail[],
+  totalCount = transactions.length,
+  limit = transactions.length,
+  verbose = false
 ): string {
   const lines: string[] = [
-    `Returned ${transactions.length} transactions from YNAB budget ${budgetId} since ${sinceDate}.`
+    `Returned ${totalCount} transactions from YNAB budget ${budgetId} since ${sinceDate}. Showing ${transactions.length} of ${totalCount} (limit ${limit}).`
   ];
 
   const filters: string[] = [];
@@ -29,7 +37,7 @@ export function formatTransactionsResponse(
 
   lines.push('', 'Transactions:');
   for (const t of transactions) {
-    lines.push(formatTransactionLine(t));
+    lines.push(formatTransactionLine(t, verbose));
   }
 
   return lines.join('\n');

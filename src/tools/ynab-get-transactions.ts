@@ -20,6 +20,18 @@ const paramsSchema = Type.Object({
       description:
         'If true, return only uncleared transactions. If false, return only cleared/reconciled. Omit to include both.'
     })
+  ),
+  limit: Type.Optional(
+    Type.Integer({
+      minimum: 1,
+      maximum: 100,
+      description: 'Maximum transactions to return. Defaults to 25; capped at 100.'
+    })
+  ),
+  verbose: Type.Optional(
+    Type.Boolean({
+      description: 'If true, include account, cleared/approved status, and memo fields. Defaults to false for compact output.'
+    })
   )
 });
 
@@ -33,7 +45,10 @@ export default function createTool(ynabAPI: ynab.API): ToolDefinition<typeof par
     async execute(_toolCallId, params) {
       try {
         const sinceDate = params.sinceDate ?? getDefaultSinceDate();
-        const response = await ynabAPI.transactions.getTransactions(params.budgetId, sinceDate);
+        const transactionType = params.unapproved === true ? 'unapproved' : undefined;
+        const response = transactionType
+          ? await ynabAPI.transactions.getTransactions(params.budgetId, sinceDate, transactionType)
+          : await ynabAPI.transactions.getTransactions(params.budgetId, sinceDate);
         let transactions = response.data.transactions;
 
         if (params.unapproved !== undefined) {
@@ -47,12 +62,22 @@ export default function createTool(ynabAPI: ynab.API): ToolDefinition<typeof par
           );
         }
 
+        transactions = [...transactions].sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+        );
+        const totalCount = transactions.length;
+        const limit = Math.min(Math.max(params.limit ?? 25, 1), 100);
+        const shownTransactions = transactions.slice(0, limit);
+
         const text = formatTransactionsResponse(
           params.budgetId,
           sinceDate,
           params.unapproved,
           params.uncleared,
-          transactions
+          shownTransactions,
+          totalCount,
+          limit,
+          params.verbose ?? false
         );
         return {
           content: [{ type: 'text' as const, text }],

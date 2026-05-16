@@ -57,7 +57,7 @@ describe('ynab_split_transaction', () => {
         transactions: expect.arrayContaining([
           expect.objectContaining({
             id: 'txn-1',
-            category_id: undefined,
+            category_id: null,
             subtransactions: expect.arrayContaining([
               expect.objectContaining({ amount: -60000, category_id: 'cat-1' }),
               expect.objectContaining({ amount: -40000, category_id: 'cat-2' })

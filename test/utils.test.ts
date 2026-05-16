@@ -64,6 +64,7 @@ describe('validateAndResolveSplits', () => {
     expect(result.subtransactions).toHaveLength(2);
     expect(result.subtransactions[0].amount).toBe(-60000);
     expect(result.subtransactions[1].amount).toBe(-40000);
+    expect(ynabAPI.categories.getCategories).toHaveBeenCalledTimes(1);
   });
 
   it('resolves valid splits with null remainder', async () => {

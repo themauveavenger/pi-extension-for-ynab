@@ -71,7 +71,7 @@ export default function createTool(ynabAPI: ynab.API): ToolDefinition<typeof par
           transactions: [
             {
               id: params.transactionId,
-              category_id: undefined,
+              category_id: null as unknown as string,
               subtransactions
             }
           ]

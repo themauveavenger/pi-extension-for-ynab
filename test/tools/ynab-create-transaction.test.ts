@@ -53,13 +53,15 @@ describe('ynab_create_transaction', () => {
     expect(ynabAPI.transactions.createTransaction).toHaveBeenCalledWith('budget-123', {
       transaction: {
         account_id: 'acc-1',
-        payee_id: 'pay-1',
+        payee_id: null,
+        payee_name: 'Grocery Store',
         amount: -50000,
         category_id: 'cat-1',
         date: '2026-04-29',
         memo: 'Weekly shopping'
       }
     });
+    expect(ynabAPI.payees.getPayees).not.toHaveBeenCalled();
   });
 
   it('creates a transfer', async () => {
@@ -138,7 +140,9 @@ describe('ynab_create_transaction', () => {
     expect(ynabAPI.transactions.createTransaction).toHaveBeenCalledWith('budget-123', {
       transaction: {
         account_id: 'acc-1',
-        payee_id: 'pay-1',
+        payee_id: null,
+        payee_name: 'Store',
+        category_id: null,
         amount: -100000,
         date: '2026-04-29',
         subtransactions: [
@@ -147,6 +151,7 @@ describe('ynab_create_transaction', () => {
         ]
       }
     });
+    expect(ynabAPI.payees.getPayees).not.toHaveBeenCalled();
   });
 
   it('returns validation error when payee and transfer both missing', async () => {

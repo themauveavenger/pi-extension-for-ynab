@@ -8,7 +8,6 @@ import {
   isYnabNotFoundError,
   resolveAccountId,
   resolveCategoryId,
-  resolvePayeeId,
   validateAndResolveSplits
 } from '../utils.js';
 import {
@@ -83,11 +82,13 @@ export default function createTool(ynabAPI: ynab.API): ToolDefinition<typeof par
         }
 
         let payeeId: string | undefined = undefined;
+        let payeeName: string | undefined = params.payee ?? undefined;
         let isTransfer = false;
         let targetAccountName: string | undefined = undefined;
 
         if (params.transferToAccount) {
           isTransfer = true;
+          payeeName = undefined;
           targetAccountName = params.transferToAccount;
           const targetAccountId = await resolveAccountId(ynabAPI, params.budgetId, params.transferToAccount);
           if (!targetAccountId) {
@@ -118,19 +119,7 @@ export default function createTool(ynabAPI: ynab.API): ToolDefinition<typeof par
           payeeId = targetAccount.transfer_payee_id;
         }
         else if (params.payee) {
-          const resolvedPayeeId = await resolvePayeeId(ynabAPI, params.budgetId, params.payee);
-          if (!resolvedPayeeId) {
-            return {
-              content: [
-                {
-                  type: 'text' as const,
-                  text: `Error: Payee "${params.payee}" not found. Verify the exact name as it appears in YNAB.`
-                }
-              ],
-              details: {}
-            };
-          }
-          payeeId = resolvedPayeeId;
+          payeeName = params.payee;
         }
 
         const amountMilliunits = Math.round(currency(params.amount).value * 1000);
@@ -159,11 +148,12 @@ export default function createTool(ynabAPI: ynab.API): ToolDefinition<typeof par
           await ynabAPI.transactions.createTransaction(params.budgetId, {
             transaction: {
               account_id: accountId,
-              payee_id: payeeId,
-              category_id: undefined,
+              payee_id: (isTransfer ? payeeId : null) as unknown as string,
+              ...(payeeName ? { payee_name: payeeName } : {}),
+              category_id: null as unknown as string,
               amount: amountMilliunits,
               date: params.date,
-              memo: params.memo ?? undefined,
+              ...(params.memo ? { memo: params.memo } : {}),
               subtransactions
             }
           });
@@ -205,11 +195,12 @@ export default function createTool(ynabAPI: ynab.API): ToolDefinition<typeof par
         await ynabAPI.transactions.createTransaction(params.budgetId, {
           transaction: {
             account_id: accountId,
-            payee_id: payeeId,
-            category_id: categoryId ?? undefined,
+            payee_id: (isTransfer ? payeeId : null) as unknown as string,
+            ...(payeeName ? { payee_name: payeeName } : {}),
+            ...(categoryId ? { category_id: categoryId } : {}),
             amount: amountMilliunits,
             date: params.date,
-            memo: params.memo ?? undefined
+            ...(params.memo ? { memo: params.memo } : {})
           }
         });
 
