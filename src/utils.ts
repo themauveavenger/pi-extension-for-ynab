@@ -1,7 +1,13 @@
 import type * as ynab from 'ynab';
 import currency from 'currency.js';
 import { subDays, subMonths, differenceInDays, parseISO } from 'date-fns';
-import { median, std, mean, sum, min, max } from 'mathjs';
+import { median, std, mean, sum, min, max, round } from 'mathjs';
+
+const YNAB_CURRENCY_OPTIONS: currency.Options = { precision: 3 };
+
+export function ynabCurrency(amount: currency.Any): currency {
+  return currency(amount, YNAB_CURRENCY_OPTIONS);
+}
 
 // ---------------------------------------------------------------------------
 // Name resolvers
@@ -101,7 +107,7 @@ export async function validateAndResolveSplits(
     return { subtransactions: [], errors };
   }
 
-  let explicitSum = currency(0);
+  let explicitSum = ynabCurrency(0);
   for (const split of splits) {
     if (split.amount !== null) {
       explicitSum = explicitSum.add(split.amount);
@@ -134,7 +140,7 @@ export async function validateAndResolveSplits(
     const split = splits[i];
     const category = resolvedCategories[i]!;
     const amountDollars = split.amount === null ? remainder : split.amount;
-    const amountMilliunits = Math.round(amountDollars.value * 1000);
+    const amountMilliunits = currencyToMilliunits(amountDollars);
 
     subtransactions.push({
       amount: amountMilliunits,
@@ -151,27 +157,32 @@ export async function validateAndResolveSplits(
 // ---------------------------------------------------------------------------
 
 export function milliunitsToCurrency(milliunits: number): currency {
-  return currency(milliunits / 1000);
+  return currency(milliunits, { ...YNAB_CURRENCY_OPTIONS, fromCents: true });
 }
 
 export function currencyToMilliunits(amount: currency): number {
-  return Math.round(amount.value * 1000);
+  return round(amount.value * 1000) as number;
 }
 
 export function numberToCurrency(amount: number): currency {
-  return currency(amount);
+  return ynabCurrency(amount);
 }
 
 export function formatUsd(amount: currency): string {
-  return `${currency(amount.value).format()} USD`;
+  return `${formatAmount(amount)} USD`;
 }
 
 export function formatMilliunits(milliunits: number): string {
-  return milliunitsToCurrency(milliunits).format();
+  return formatAmount(milliunitsToCurrency(milliunits));
 }
 
 export function formatAmount(c: currency): string {
-  return currency(c.value).format();
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(c.value);
 }
 
 export function getCurrentBudgetMonth(): string {

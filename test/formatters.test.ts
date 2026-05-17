@@ -1,5 +1,4 @@
 import { describe, it, expect } from 'vitest';
-import currency from 'currency.js';
 import {
   formatCreateTransactionResponse,
   formatCreateTransferResponse,
@@ -12,6 +11,7 @@ import {
   formatAlreadyFlaggedResponse,
   formatAssignMoneyResponse
 } from '../src/formatters.js';
+import { ynabCurrency } from '../src/utils.js';
 
 describe('formatCreateTransactionResponse', () => {
   it('formats a regular transaction with all fields', () => {
@@ -196,24 +196,24 @@ describe('formatAssignMoneyResponse', () => {
     const result = formatAssignMoneyResponse(
       'BofA Visa',
       '2026-05-01',
-      currency(0),
-      currency(2795),
-      currency(2795),
+      ynabCurrency(0),
+      ynabCurrency(2795),
+      ynabCurrency(2795),
       false,
       {
-        previousAvailable: currency(219.34),
-        newAvailable: currency(3014.34),
-        previousReadyToAssign: currency(9509.51),
-        newReadyToAssign: currency(6714.51),
+        previousAvailable: ynabCurrency(219.34),
+        newAvailable: ynabCurrency(3014.34),
+        previousReadyToAssign: ynabCurrency(9509.51),
+        newReadyToAssign: ynabCurrency(6714.51),
         previousOverspentCategoryCount: 1,
         newOverspentCategoryCount: 0,
         previousAvailableCategoryCount: 18,
         newAvailableCategoryCount: 19,
         creditCard: {
           accountName: 'BofA Visa',
-          accountBalance: currency(-3014.34),
-          paymentAvailable: currency(3014.34),
-          paymentDifference: currency(0)
+          accountBalance: ynabCurrency(-3014.34),
+          paymentAvailable: ynabCurrency(3014.34),
+          paymentDifference: ynabCurrency(0)
         }
       }
     );

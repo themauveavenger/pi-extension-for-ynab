@@ -1,9 +1,8 @@
 import type * as ynab from 'ynab';
 import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
-import currency from 'currency.js';
 import { formatUpdateCategoryGoalResponse } from '../formatters.js';
-import { currencyToMilliunits, formatUsd, getYnabErrorMessage, isYnabNotFoundError } from '../utils.js';
+import { currencyToMilliunits, formatUsd, getYnabErrorMessage, isYnabNotFoundError, ynabCurrency } from '../utils.js';
 
 const paramsSchema = Type.Object({
   budgetId: Type.Optional(Type.String({ description: 'The UUID of the YNAB budget. Defaults from extension config or YNAB_BUDGET_ID.' })),
@@ -73,7 +72,7 @@ export default function createTool(
           changes.push('Target amount: cleared');
         }
         else if (params.targetAmount !== undefined) {
-          const targetAmount = currency(params.targetAmount);
+          const targetAmount = ynabCurrency(params.targetAmount);
           categoryUpdate.goal_target = currencyToMilliunits(targetAmount);
           changes.push(`Target amount: ${formatUsd(targetAmount)}`);
         }

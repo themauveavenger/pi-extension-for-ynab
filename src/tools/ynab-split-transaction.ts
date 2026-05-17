@@ -1,8 +1,7 @@
 import type * as ynab from 'ynab';
 import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
-import currency from 'currency.js';
-import { formatMilliunits, getYnabErrorMessage, isYnabNotFoundError, validateAndResolveSplits } from '../utils.js';
+import { formatMilliunits, getYnabErrorMessage, isYnabNotFoundError, milliunitsToCurrency, validateAndResolveSplits, ynabCurrency } from '../utils.js';
 import { formatSplitTransactionResponse } from '../formatters.js';
 
 const paramsSchema = Type.Object({
@@ -45,10 +44,10 @@ export default function createTool(ynabAPI: ynab.API): ToolDefinition<typeof par
           };
         }
 
-        const totalAmount = currency(existingTransaction.amount / 1000);
+        const totalAmount = milliunitsToCurrency(existingTransaction.amount);
         const splitInputs = params.splits.map(s => ({
           category: s.category,
-          amount: s.amount === null ? null : currency(s.amount),
+          amount: s.amount === null ? null : ynabCurrency(s.amount),
           memo: s.memo
         }));
 

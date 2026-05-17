@@ -2,10 +2,12 @@ import { describe, it, expect } from 'vitest';
 import {
   formatMilliunits,
   formatAmount,
+  currencyToMilliunits,
+  milliunitsToCurrency,
   validateAndResolveSplits,
-  buildPayeeStats
+  buildPayeeStats,
+  ynabCurrency
 } from '../src/utils.js';
-import currency from 'currency.js';
 import { createMockYnabAPI, makeHybridTransaction } from './test-helpers.js';
 import type * as ynab from 'ynab';
 
@@ -21,15 +23,48 @@ describe('formatMilliunits', () => {
   it('formats zero', () => {
     expect(formatMilliunits(0)).toBe('$0.00');
   });
+
+  it('rounds fractional cents to 2 decimal places for display only', () => {
+    expect(formatMilliunits(12345)).toBe('$12.35');
+  });
 });
 
 describe('formatAmount', () => {
   it('formats a currency object', () => {
-    expect(formatAmount(currency(1234.56))).toBe('$1,234.56');
+    expect(formatAmount(ynabCurrency(1234.56))).toBe('$1,234.56');
   });
 
   it('formats a negative currency object', () => {
-    expect(formatAmount(currency(-99.99))).toBe('-$99.99');
+    expect(formatAmount(ynabCurrency(-99.99))).toBe('-$99.99');
+  });
+});
+
+describe('currencyToMilliunits', () => {
+  it('converts normal dollar-and-cent currency values to YNAB milliunits', () => {
+    expect(currencyToMilliunits(ynabCurrency(12.34))).toBe(12340);
+    expect(currencyToMilliunits(ynabCurrency(-12.34))).toBe(-12340);
+    expect(currencyToMilliunits(ynabCurrency(0))).toBe(0);
+  });
+
+  it('rounds after multiplying so floating-point artifacts still produce integer milliunits', () => {
+    const amount = ynabCurrency(0).add(1.001).add(2.002);
+
+    expect(amount.value).toBe(3.003);
+    expect(currencyToMilliunits(amount)).toBe(3003);
+  });
+
+  it('preserves 3-decimal values for YNAB milliunits', () => {
+    const amount = ynabCurrency(12.345);
+
+    expect(amount.value).toBe(12.345);
+    expect(currencyToMilliunits(amount)).toBe(12345);
+  });
+
+  it('converts integer YNAB milliunits into 3-decimal currency values', () => {
+    const amount = milliunitsToCurrency(12345);
+
+    expect(amount.value).toBe(12.345);
+    expect(currencyToMilliunits(amount)).toBe(12345);
   });
 });
 
@@ -55,9 +90,9 @@ describe('validateAndResolveSplits', () => {
 
   it('resolves valid splits with explicit amounts', async () => {
     const ynabAPI = await setupCategories();
-    const result = await validateAndResolveSplits(ynabAPI as unknown as ynab.API, 'budget-123', currency(-100), [
-      { category: 'Food', amount: currency(-60) },
-      { category: 'Transport', amount: currency(-40) }
+    const result = await validateAndResolveSplits(ynabAPI as unknown as ynab.API, 'budget-123', ynabCurrency(-100), [
+      { category: 'Food', amount: ynabCurrency(-60) },
+      { category: 'Transport', amount: ynabCurrency(-40) }
     ]);
 
     expect(result.errors).toHaveLength(0);
@@ -69,8 +104,8 @@ describe('validateAndResolveSplits', () => {
 
   it('resolves valid splits with null remainder', async () => {
     const ynabAPI = await setupCategories();
-    const result = await validateAndResolveSplits(ynabAPI as unknown as ynab.API, 'budget-123', currency(-100), [
-      { category: 'Food', amount: currency(-60) },
+    const result = await validateAndResolveSplits(ynabAPI as unknown as ynab.API, 'budget-123', ynabCurrency(-100), [
+      { category: 'Food', amount: ynabCurrency(-60) },
       { category: 'Transport', amount: null }
     ]);
 
@@ -82,8 +117,8 @@ describe('validateAndResolveSplits', () => {
 
   it('errors when fewer than 2 splits', async () => {
     const ynabAPI = await setupCategories();
-    const result = await validateAndResolveSplits(ynabAPI as unknown as ynab.API, 'budget-123', currency(-100), [
-      { category: 'Food', amount: currency(-100) }
+    const result = await validateAndResolveSplits(ynabAPI as unknown as ynab.API, 'budget-123', ynabCurrency(-100), [
+      { category: 'Food', amount: ynabCurrency(-100) }
     ]);
 
     expect(result.errors).toHaveLength(1);
@@ -92,7 +127,7 @@ describe('validateAndResolveSplits', () => {
 
   it('errors when more than one null amount', async () => {
     const ynabAPI = await setupCategories();
-    const result = await validateAndResolveSplits(ynabAPI as unknown as ynab.API, 'budget-123', currency(-100), [
+    const result = await validateAndResolveSplits(ynabAPI as unknown as ynab.API, 'budget-123', ynabCurrency(-100), [
       { category: 'Food', amount: null },
       { category: 'Transport', amount: null }
     ]);
@@ -103,9 +138,9 @@ describe('validateAndResolveSplits', () => {
 
   it('errors when explicit amounts do not sum to total', async () => {
     const ynabAPI = await setupCategories();
-    const result = await validateAndResolveSplits(ynabAPI as unknown as ynab.API, 'budget-123', currency(-100), [
-      { category: 'Food', amount: currency(-30) },
-      { category: 'Transport', amount: currency(-40) }
+    const result = await validateAndResolveSplits(ynabAPI as unknown as ynab.API, 'budget-123', ynabCurrency(-100), [
+      { category: 'Food', amount: ynabCurrency(-30) },
+      { category: 'Transport', amount: ynabCurrency(-40) }
     ]);
 
     expect(result.errors).toHaveLength(1);
@@ -114,8 +149,8 @@ describe('validateAndResolveSplits', () => {
 
   it('errors when remainder is zero', async () => {
     const ynabAPI = await setupCategories();
-    const result = await validateAndResolveSplits(ynabAPI as unknown as ynab.API, 'budget-123', currency(-100), [
-      { category: 'Food', amount: currency(-100) },
+    const result = await validateAndResolveSplits(ynabAPI as unknown as ynab.API, 'budget-123', ynabCurrency(-100), [
+      { category: 'Food', amount: ynabCurrency(-100) },
       { category: 'Transport', amount: null }
     ]);
 
@@ -136,9 +171,9 @@ describe('validateAndResolveSplits', () => {
         ]
       }
     });
-    const result = await validateAndResolveSplits(ynabAPI as unknown as ynab.API, 'budget-123', currency(-100), [
-      { category: 'Missing', amount: currency(-50) },
-      { category: 'Food', amount: currency(-50) }
+    const result = await validateAndResolveSplits(ynabAPI as unknown as ynab.API, 'budget-123', ynabCurrency(-100), [
+      { category: 'Missing', amount: ynabCurrency(-50) },
+      { category: 'Food', amount: ynabCurrency(-50) }
     ]);
 
     expect(result.errors).toHaveLength(1);
