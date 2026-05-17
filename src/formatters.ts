@@ -260,6 +260,53 @@ export function formatCategoriesResponse(
   return lines.join('\n');
 }
 
+export function formatAccountLine(account: ynab.Account, verbose = false): string[] {
+  const flags: string[] = [account.on_budget ? 'on budget' : 'off budget'];
+  if (account.closed) flags.push('closed');
+  if (account.deleted) flags.push('deleted');
+
+  const lines = [
+    `- ${account.name} | ${account.type} | ${flags.join(' | ')} | Balance: ${formatUsd(milliunitsToCurrency(account.balance))} | Cleared: ${formatUsd(milliunitsToCurrency(account.cleared_balance))} | Uncleared: ${formatUsd(milliunitsToCurrency(account.uncleared_balance))}`
+  ];
+
+  if (verbose) {
+    const directImport = account.direct_import_linked === undefined
+      ? 'unknown'
+      : account.direct_import_linked ? 'linked' : 'not linked';
+    const importHealth = account.direct_import_in_error ? 'error' : 'ok';
+    lines.push(`  Direct import: ${directImport} | Import health: ${importHealth} | Last reconciled: ${account.last_reconciled_at ?? 'never'}`);
+  }
+
+  return lines;
+}
+
+export function formatAccountsResponse(
+  budgetId: string,
+  accounts: ynab.Account[],
+  totalCount: number,
+  verbose = false
+): string {
+  const onBudgetAccounts = accounts.filter(a => a.on_budget && !a.deleted);
+  const onBudgetBalance = onBudgetAccounts.reduce((total, a) => total + a.balance, 0);
+  const onBudgetCleared = onBudgetAccounts.reduce((total, a) => total + a.cleared_balance, 0);
+  const onBudgetUncleared = onBudgetAccounts.reduce((total, a) => total + a.uncleared_balance, 0);
+
+  const lines = [
+    `Accounts for YNAB budget ${budgetId}. Showing ${accounts.length} of ${totalCount}.`,
+    `On-budget total: ${formatUsd(milliunitsToCurrency(onBudgetBalance))}`,
+    `Cleared: ${formatUsd(milliunitsToCurrency(onBudgetCleared))}`,
+    `Uncleared: ${formatUsd(milliunitsToCurrency(onBudgetUncleared))}`,
+    '',
+    'Accounts:'
+  ];
+
+  for (const account of accounts) {
+    lines.push(...formatAccountLine(account, verbose));
+  }
+
+  return lines.join('\n');
+}
+
 export function formatAssignMoneyResponse(
   categoryName: string,
   month: string,

@@ -1,6 +1,6 @@
 {
   "name": "pi-extension-for-ynab",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Pi extension that adds tools for working with a personal YNAB account.",
   "license": "MIT",
   "author": "themauveavenger",

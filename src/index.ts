@@ -9,6 +9,7 @@ import ynabDeleteTransactionTool from './tools/ynab-delete-transaction.js';
 import ynabFlagTransactionTool from './tools/ynab-flag-transaction.js';
 import ynabGetBudgetMonthTool from './tools/ynab-get-budget-month.js';
 import ynabGetCategoriesTool from './tools/ynab-get-categories.js';
+import ynabGetAccountsTool from './tools/ynab-get-accounts.js';
 import ynabAssignMoneyTool from './tools/ynab-assign-money.js';
 import ynabMoveMoneyTool from './tools/ynab-move-money.js';
 import ynabUpdateCategoryGoalTool from './tools/ynab-update-category-goal.js';
@@ -47,6 +48,7 @@ export function createYnabExtension(options: YnabExtensionOptions = {}) {
     pi.registerTool(ynabFlagTransactionTool(ynabAPI));
     pi.registerTool(ynabGetBudgetMonthTool(ynabAPI, resolveBudgetId));
     pi.registerTool(ynabGetCategoriesTool(ynabAPI, resolveBudgetId));
+    pi.registerTool(ynabGetAccountsTool(ynabAPI, resolveBudgetId));
     pi.registerTool(ynabAssignMoneyTool(ynabAPI, resolveBudgetId));
     pi.registerTool(ynabMoveMoneyTool(ynabAPI, resolveBudgetId));
     pi.registerTool(ynabUpdateCategoryGoalTool(ynabAPI, resolveBudgetId));
