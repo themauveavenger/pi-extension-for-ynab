@@ -35,7 +35,12 @@ export function createMockYnabAPI() {
       getAccountById: vi.fn()
     },
     categories: {
-      getCategories: vi.fn()
+      getCategories: vi.fn(),
+      updateCategory: vi.fn(),
+      updateMonthCategory: vi.fn()
+    },
+    months: {
+      getPlanMonth: vi.fn()
     },
     payees: {
       getPayees: vi.fn()

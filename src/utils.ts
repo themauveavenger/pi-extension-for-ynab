@@ -150,12 +150,33 @@ export async function validateAndResolveSplits(
 // Money formatting
 // ---------------------------------------------------------------------------
 
+export function milliunitsToCurrency(milliunits: number): currency {
+  return currency(milliunits / 1000);
+}
+
+export function currencyToMilliunits(amount: currency): number {
+  return Math.round(amount.value * 1000);
+}
+
+export function numberToCurrency(amount: number): currency {
+  return currency(amount);
+}
+
+export function formatUsd(amount: currency): string {
+  return `${currency(amount.value).format()} USD`;
+}
+
 export function formatMilliunits(milliunits: number): string {
-  return currency(milliunits / 1000).format();
+  return milliunitsToCurrency(milliunits).format();
 }
 
 export function formatAmount(c: currency): string {
   return currency(c.value).format();
+}
+
+export function getCurrentBudgetMonth(): string {
+  const now = new Date();
+  return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-01`;
 }
 
 // ---------------------------------------------------------------------------

@@ -1,5 +1,6 @@
 import type * as ynab from 'ynab';
-import { formatMilliunits, buildPayeeStats, daysBetween } from './utils.js';
+import type currency from 'currency.js';
+import { formatMilliunits, buildPayeeStats, daysBetween, formatUsd, milliunitsToCurrency } from './utils.js';
 
 export function formatTransactionLine(t: ynab.TransactionDetail, verbose = false): string {
   const amount = formatMilliunits(t.amount);
@@ -192,4 +193,105 @@ export function formatAlreadyFlaggedResponse(
     return `Transaction ${transactionId} already has no flag. No changes needed.`;
   }
   return `Transaction ${transactionId} already has the ${flagColor} flag. No changes needed.`;
+}
+
+export function formatBudgetMonthResponse(month: ynab.MonthDetail): string {
+  const categories = month.categories.filter(c => !c.deleted && !c.hidden);
+  const overspentCount = categories.filter(c => c.balance < 0).length;
+  const availableCount = categories.filter(c => c.balance > 0).length;
+  const availableToMove = categories.reduce((total, c) => total + Math.max(c.balance, 0), 0);
+
+  return [
+    `Budget month ${month.month}:`,
+    `Ready to Assign: ${formatUsd(milliunitsToCurrency(month.to_be_budgeted))}`,
+    `Assigned: ${formatUsd(milliunitsToCurrency(month.budgeted))}`,
+    `Activity: ${formatUsd(milliunitsToCurrency(month.activity))}`,
+    `Available to move: ${formatUsd(milliunitsToCurrency(availableToMove))}`,
+    `Overspent categories: ${overspentCount}`,
+    `Categories with funds available: ${availableCount}`
+  ].join('\n');
+}
+
+export function formatCategoryLine(category: ynab.Category, includeGoals = false): string[] {
+  const flags: string[] = [];
+  if (category.balance < 0) flags.push('OVERSPENT');
+  if (category.hidden) flags.push('HIDDEN');
+
+  const group = category.category_group_name ?? '(no group)';
+  const suffix = flags.length > 0 ? ` | ${flags.join(' | ')}` : '';
+  const lines = [
+    `- ${category.name} | Group: ${group} | Assigned: ${formatUsd(milliunitsToCurrency(category.budgeted))} | Activity: ${formatUsd(milliunitsToCurrency(category.activity))} | Available: ${formatUsd(milliunitsToCurrency(category.balance))}${suffix}`
+  ];
+
+  if (includeGoals) {
+    const target = category.goal_target === undefined || category.goal_target === null
+      ? 'none'
+      : formatUsd(milliunitsToCurrency(category.goal_target));
+    const underfunded = category.goal_under_funded === undefined || category.goal_under_funded === null
+      ? 'n/a'
+      : formatUsd(milliunitsToCurrency(category.goal_under_funded));
+    const overallLeft = category.goal_overall_left === undefined || category.goal_overall_left === null
+      ? 'n/a'
+      : formatUsd(milliunitsToCurrency(category.goal_overall_left));
+    const snoozed = category.goal_snoozed_at ? 'yes' : 'no';
+    lines.push(`  Goal: ${category.goal_type ?? 'none'} | Target: ${target} | Underfunded: ${underfunded} | Overall left: ${overallLeft} | Snoozed: ${snoozed}`);
+  }
+
+  return lines;
+}
+
+export function formatCategoriesResponse(
+  month: ynab.MonthDetail,
+  categories: ynab.Category[],
+  totalCount: number,
+  includeGoals = false
+): string {
+  const lines = [
+    `Categories for ${month.month}. Showing ${categories.length} of ${totalCount}.`,
+    `Ready to Assign: ${formatUsd(milliunitsToCurrency(month.to_be_budgeted))}`,
+    '',
+    'Categories:'
+  ];
+
+  for (const category of categories) {
+    lines.push(...formatCategoryLine(category, includeGoals));
+  }
+
+  return lines.join('\n');
+}
+
+export function formatAssignMoneyResponse(
+  categoryName: string,
+  month: string,
+  previousAssigned: currency,
+  newAssigned: currency,
+  delta: currency,
+  dryRun: boolean
+): string {
+  const prefix = dryRun ? 'Dry run: would assign money' : 'Assigned money';
+  return [
+    `${prefix} to ${categoryName} for ${month}.`,
+    `Assigned: ${formatUsd(previousAssigned)} -> ${formatUsd(newAssigned)}`,
+    `Delta: ${formatUsd(delta)}`
+  ].join('\n');
+}
+
+export function formatMoveMoneyResponse(
+  fromCategory: string,
+  toCategory: string,
+  month: string,
+  amount: currency,
+  dryRun: boolean
+): string {
+  const prefix = dryRun ? 'Dry run: would move money' : 'Moved money';
+  return `${prefix} for ${month}: ${formatUsd(amount)} from ${fromCategory} to ${toCategory}.`;
+}
+
+export function formatUpdateCategoryGoalResponse(
+  categoryName: string,
+  dryRun: boolean,
+  changes: string[]
+): string {
+  const prefix = dryRun ? 'Dry run: would update goal' : 'Updated goal';
+  return [`${prefix} for ${categoryName}.`, ...changes.map(change => `- ${change}`)].join('\n');
 }
