@@ -74,9 +74,19 @@ describe('YNAB budgeting tools', () => {
     expect(result.content[0].text).not.toContain('Dining Out');
   });
 
-  it('assigns money using currency.js dollars and writes milliunits at the API boundary', async () => {
+  it('assigns money using currency.js dollars and returns validation details', async () => {
     const { ynabAPI, tools } = setup();
-    ynabAPI.months.getPlanMonth.mockResolvedValue({ data: { month: makeMonth() } });
+    const updatedMonth = makeMonth();
+    updatedMonth.to_be_budgeted = 174500;
+    updatedMonth.categories[0] = {
+      ...updatedMonth.categories[0],
+      budgeted: 525500,
+      balance: 75500,
+      goal_under_funded: 74500
+    };
+    ynabAPI.months.getPlanMonth
+      .mockResolvedValueOnce({ data: { month: makeMonth() } })
+      .mockResolvedValueOnce({ data: { month: updatedMonth } });
     ynabAPI.categories.updateMonthCategory.mockResolvedValue({ data: {} });
 
     const tool = tools.find(t => t.name === 'ynab_assign_money')!;
@@ -85,7 +95,68 @@ describe('YNAB budgeting tools', () => {
     expect(ynabAPI.categories.updateMonthCategory).toHaveBeenCalledWith('budget-123', '2026-05-01', 'cat-food', {
       category: { budgeted: 525500 }
     });
+    expect(ynabAPI.months.getPlanMonth).toHaveBeenCalledTimes(2);
     expect(result.content[0].text).toContain('Delta: $25.50 USD');
+    expect(result.content[0].text).toContain('Available: $50.00 USD -> $75.50 USD');
+    expect(result.content[0].text).toContain('Underfunded: $100.00 USD -> $74.50 USD');
+    expect(result.content[0].text).toContain('Ready to Assign: $200.00 USD -> $174.50 USD');
+    expect(result.content[0].text).toContain('Overspent categories: 1 -> 1');
+  });
+
+  it('includes credit card account balance and payment coverage when assigning card payments', async () => {
+    const { ynabAPI, tools } = setup();
+    const beforeMonth = makeMonth();
+    beforeMonth.categories.push({
+      id: 'cat-visa',
+      category_group_id: 'group-cc',
+      category_group_name: 'Credit Card Payments',
+      name: 'Visa',
+      hidden: false,
+      budgeted: 0,
+      activity: 21934,
+      balance: 21934,
+      deleted: false
+    });
+    const afterMonth = makeMonth();
+    afterMonth.to_be_budgeted = 5000;
+    afterMonth.categories.push({
+      id: 'cat-visa',
+      category_group_id: 'group-cc',
+      category_group_name: 'Credit Card Payments',
+      name: 'Visa',
+      hidden: false,
+      budgeted: 195000,
+      activity: 21934,
+      balance: 216934,
+      deleted: false
+    });
+    ynabAPI.months.getPlanMonth
+      .mockResolvedValueOnce({ data: { month: beforeMonth } })
+      .mockResolvedValueOnce({ data: { month: afterMonth } });
+    ynabAPI.categories.updateMonthCategory.mockResolvedValue({ data: {} });
+    ynabAPI.accounts.getAccounts.mockResolvedValue({
+      data: {
+        accounts: [
+          {
+            id: 'acc-visa',
+            name: 'Visa',
+            type: 'creditCard',
+            on_budget: true,
+            closed: false,
+            balance: -216934,
+            cleared_balance: -216934,
+            uncleared_balance: 0,
+            transfer_payee_id: 'payee-visa',
+            deleted: false
+          }
+        ]
+      }
+    });
+
+    const tool = tools.find(t => t.name === 'ynab_assign_money')!;
+    const result = await tool.execute('call-1', { month: '2026-05-01', category: 'Visa', assignedAmount: 195 });
+
+    expect(result.content[0].text).toContain('Credit card: Visa balance -$216.93 USD | Payment available $216.93 USD | Difference $0.00 USD');
   });
 
   it('moves money between categories', async () => {

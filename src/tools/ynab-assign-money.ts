@@ -2,7 +2,7 @@ import type * as ynab from 'ynab';
 import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
 import currency from 'currency.js';
-import { formatAssignMoneyResponse } from '../formatters.js';
+import { formatAssignMoneyResponse, type AssignMoneyValidationDetails } from '../formatters.js';
 import { currencyToMilliunits, getCurrentBudgetMonth, getYnabErrorMessage, isYnabNotFoundError, milliunitsToCurrency } from '../utils.js';
 
 const paramsSchema = Type.Object({
@@ -16,6 +16,49 @@ const paramsSchema = Type.Object({
 
 function findCategory(categories: ynab.Category[], name: string): ynab.Category | null {
   return categories.find(c => !c.deleted && !c.hidden && c.name === name) ?? null;
+}
+
+function visibleCategories(month: ynab.MonthDetail): ynab.Category[] {
+  return month.categories.filter(c => !c.deleted && !c.hidden);
+}
+
+function getVisibleCategoryCounts(month: ynab.MonthDetail): { overspentCategoryCount: number; availableCategoryCount: number } {
+  const categories = visibleCategories(month);
+  return {
+    overspentCategoryCount: categories.filter(c => c.balance < 0).length,
+    availableCategoryCount: categories.filter(c => c.balance > 0).length
+  };
+}
+
+function maybeCurrency(milliunits: number | null | undefined): currency | undefined {
+  return milliunits === null || milliunits === undefined ? undefined : milliunitsToCurrency(milliunits);
+}
+
+function isCreditCardPaymentCategory(category: ynab.Category): boolean {
+  return category.category_group_name === 'Credit Card Payments';
+}
+
+async function getCreditCardAssignmentDetails(
+  ynabAPI: ynab.API,
+  budgetId: string,
+  category: ynab.Category
+): Promise<AssignMoneyValidationDetails['creditCard']> {
+  if (!isCreditCardPaymentCategory(category)) return undefined;
+
+  const response = await ynabAPI.accounts.getAccounts(budgetId);
+  const account = response.data.accounts.find(a => !a.deleted && !a.closed && a.on_budget && a.type === 'creditCard' && a.name === category.name);
+  if (!account) return undefined;
+
+  const accountBalance = milliunitsToCurrency(account.balance);
+  const paymentAvailable = milliunitsToCurrency(category.balance);
+  const amountNeededToPayBalance = milliunitsToCurrency(Math.abs(account.balance));
+
+  return {
+    accountName: account.name,
+    accountBalance,
+    paymentAvailable,
+    paymentDifference: paymentAvailable.subtract(amountNeededToPayBalance)
+  };
 }
 
 export default function createTool(
@@ -56,14 +99,62 @@ export default function createTool(
         const delta = newAssigned.subtract(previousAssigned);
         const dryRun = params.dryRun ?? false;
 
-        if (!dryRun) {
-          await ynabAPI.categories.updateMonthCategory(budgetId, month, category.id, {
+        let validation: AssignMoneyValidationDetails | undefined;
+        const previousReadyToAssign = milliunitsToCurrency(monthResponse.data.month.to_be_budgeted);
+        const previousCategoryCounts = getVisibleCategoryCounts(monthResponse.data.month);
+        const deltaMilliunits = currencyToMilliunits(delta);
+
+        if (dryRun) {
+          const newCategory = {
+            ...category,
+            budgeted: currencyToMilliunits(newAssigned),
+            balance: category.balance + deltaMilliunits,
+            goal_under_funded: category.goal_under_funded === null || category.goal_under_funded === undefined
+              ? category.goal_under_funded
+              : Math.max(category.goal_under_funded - deltaMilliunits, 0)
+          };
+          const simulatedMonth = {
+            ...monthResponse.data.month,
+            to_be_budgeted: monthResponse.data.month.to_be_budgeted - deltaMilliunits,
+            categories: monthResponse.data.month.categories.map(c => c.id === category.id ? newCategory : c)
+          };
+          validation = {
+            previousAvailable: milliunitsToCurrency(category.balance),
+            newAvailable: milliunitsToCurrency(newCategory.balance),
+            previousUnderfunded: maybeCurrency(category.goal_under_funded),
+            newUnderfunded: maybeCurrency(newCategory.goal_under_funded),
+            previousReadyToAssign,
+            newReadyToAssign: milliunitsToCurrency(simulatedMonth.to_be_budgeted),
+            previousOverspentCategoryCount: previousCategoryCounts.overspentCategoryCount,
+            newOverspentCategoryCount: getVisibleCategoryCounts(simulatedMonth).overspentCategoryCount,
+            previousAvailableCategoryCount: previousCategoryCounts.availableCategoryCount,
+            newAvailableCategoryCount: getVisibleCategoryCounts(simulatedMonth).availableCategoryCount,
+            creditCard: await getCreditCardAssignmentDetails(ynabAPI, budgetId, newCategory)
+          };
+        }
+        else {
+          const updateResponse = await ynabAPI.categories.updateMonthCategory(budgetId, month, category.id, {
             category: { budgeted: currencyToMilliunits(newAssigned) }
           });
+          const updatedMonthResponse = await ynabAPI.months.getPlanMonth(budgetId, month);
+          const updatedCategory = findCategory(updatedMonthResponse.data.month.categories, category.name) ?? updateResponse.data.category;
+          validation = {
+            previousAvailable: milliunitsToCurrency(category.balance),
+            newAvailable: milliunitsToCurrency(updatedCategory.balance),
+            previousUnderfunded: maybeCurrency(category.goal_under_funded),
+            newUnderfunded: maybeCurrency(updatedCategory.goal_under_funded),
+            previousReadyToAssign,
+            newReadyToAssign: milliunitsToCurrency(updatedMonthResponse.data.month.to_be_budgeted),
+            previousOverspentCategoryCount: previousCategoryCounts.overspentCategoryCount,
+            newOverspentCategoryCount: getVisibleCategoryCounts(updatedMonthResponse.data.month).overspentCategoryCount,
+            previousAvailableCategoryCount: previousCategoryCounts.availableCategoryCount,
+            newAvailableCategoryCount: getVisibleCategoryCounts(updatedMonthResponse.data.month).availableCategoryCount,
+            creditCard: await getCreditCardAssignmentDetails(ynabAPI, budgetId, updatedCategory)
+          };
         }
 
         return {
-          content: [{ type: 'text' as const, text: formatAssignMoneyResponse(category.name, month, previousAssigned, newAssigned, delta, dryRun) }],
+          content: [{ type: 'text' as const, text: formatAssignMoneyResponse(category.name, month, previousAssigned, newAssigned, delta, dryRun, validation) }],
           details: {}
         };
       }

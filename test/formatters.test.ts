@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import currency from 'currency.js';
 import {
   formatCreateTransactionResponse,
   formatCreateTransferResponse,
@@ -8,7 +9,8 @@ import {
   formatAlreadyApprovedResponse,
   formatDeleteTransactionResponse,
   formatFlagTransactionResponse,
-  formatAlreadyFlaggedResponse
+  formatAlreadyFlaggedResponse,
+  formatAssignMoneyResponse
 } from '../src/formatters.js';
 
 describe('formatCreateTransactionResponse', () => {
@@ -186,6 +188,42 @@ describe('formatFlagTransactionResponse', () => {
   it('formats a cleared flag', () => {
     const result = formatFlagTransactionResponse('txn-def', null, null);
     expect(result).toBe('Cleared flag from transaction txn-def.');
+  });
+});
+
+describe('formatAssignMoneyResponse', () => {
+  it('formats validation details and credit card coverage', () => {
+    const result = formatAssignMoneyResponse(
+      'BofA Visa',
+      '2026-05-01',
+      currency(0),
+      currency(2795),
+      currency(2795),
+      false,
+      {
+        previousAvailable: currency(219.34),
+        newAvailable: currency(3014.34),
+        previousReadyToAssign: currency(9509.51),
+        newReadyToAssign: currency(6714.51),
+        previousOverspentCategoryCount: 1,
+        newOverspentCategoryCount: 0,
+        previousAvailableCategoryCount: 18,
+        newAvailableCategoryCount: 19,
+        creditCard: {
+          accountName: 'BofA Visa',
+          accountBalance: currency(-3014.34),
+          paymentAvailable: currency(3014.34),
+          paymentDifference: currency(0)
+        }
+      }
+    );
+
+    expect(result).toContain('Available: $219.34 USD -> $3,014.34 USD');
+    expect(result).toContain('Underfunded: n/a -> n/a');
+    expect(result).toContain('Ready to Assign: $9,509.51 USD -> $6,714.51 USD');
+    expect(result).toContain('Overspent categories: 1 -> 0');
+    expect(result).toContain('Categories with funds available: 18 -> 19');
+    expect(result).toContain('Credit card: BofA Visa balance -$3,014.34 USD | Payment available $3,014.34 USD | Difference $0.00 USD');
   });
 });
 

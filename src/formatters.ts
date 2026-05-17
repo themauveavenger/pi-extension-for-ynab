@@ -307,20 +307,62 @@ export function formatAccountsResponse(
   return lines.join('\n');
 }
 
+export interface CreditCardAssignmentDetails {
+  accountName: string;
+  accountBalance: currency;
+  paymentAvailable: currency;
+  paymentDifference: currency;
+}
+
+export interface AssignMoneyValidationDetails {
+  previousAvailable: currency;
+  newAvailable: currency;
+  previousUnderfunded?: currency;
+  newUnderfunded?: currency;
+  previousReadyToAssign: currency;
+  newReadyToAssign: currency;
+  previousOverspentCategoryCount: number;
+  newOverspentCategoryCount: number;
+  previousAvailableCategoryCount: number;
+  newAvailableCategoryCount: number;
+  creditCard?: CreditCardAssignmentDetails;
+}
+
+function formatOptionalCurrency(amount: currency | undefined): string {
+  return amount === undefined ? 'n/a' : formatUsd(amount);
+}
+
 export function formatAssignMoneyResponse(
   categoryName: string,
   month: string,
   previousAssigned: currency,
   newAssigned: currency,
   delta: currency,
-  dryRun: boolean
+  dryRun: boolean,
+  validation?: AssignMoneyValidationDetails
 ): string {
   const prefix = dryRun ? 'Dry run: would assign money' : 'Assigned money';
-  return [
+  const lines = [
     `${prefix} to ${categoryName} for ${month}.`,
     `Assigned: ${formatUsd(previousAssigned)} -> ${formatUsd(newAssigned)}`,
     `Delta: ${formatUsd(delta)}`
-  ].join('\n');
+  ];
+
+  if (validation) {
+    lines.push(`Available: ${formatUsd(validation.previousAvailable)} -> ${formatUsd(validation.newAvailable)}`);
+    lines.push(`Underfunded: ${formatOptionalCurrency(validation.previousUnderfunded)} -> ${formatOptionalCurrency(validation.newUnderfunded)}`);
+    lines.push(`Ready to Assign: ${formatUsd(validation.previousReadyToAssign)} -> ${formatUsd(validation.newReadyToAssign)}`);
+    lines.push(`Overspent categories: ${validation.previousOverspentCategoryCount} -> ${validation.newOverspentCategoryCount}`);
+    lines.push(`Categories with funds available: ${validation.previousAvailableCategoryCount} -> ${validation.newAvailableCategoryCount}`);
+
+    if (validation.creditCard) {
+      lines.push(
+        `Credit card: ${validation.creditCard.accountName} balance ${formatUsd(validation.creditCard.accountBalance)} | Payment available ${formatUsd(validation.creditCard.paymentAvailable)} | Difference ${formatUsd(validation.creditCard.paymentDifference)}`
+      );
+    }
+  }
+
+  return lines.join('\n');
 }
 
 export function formatMoveMoneyResponse(
