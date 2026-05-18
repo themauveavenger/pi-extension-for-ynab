@@ -53,6 +53,12 @@ export default function createTool(ynabAPI: ynab.API): ToolDefinition<typeof par
     label: 'Flag YNAB Transaction',
     description:
       'Sets or clears a flag color on a YNAB transaction. Optionally prepends a reason template to the memo.',
+    promptSnippet: 'Set or clear a YNAB transaction flag and optionally add a review reason to the memo.',
+    promptGuidelines: [
+      'Use ynab_flag_transaction to mark transactions needing manual review, possible duplicates, amount anomalies, ambiguous categories, or new payees.',
+      'Use ynab_flag_transaction instead of approving when confidence is low.',
+      'Use ynab_flag_transaction with clearFlag=true only when the user asks to remove a flag or the issue has been resolved.'
+    ],
     parameters: paramsSchema,
     async execute(_toolCallId, params) {
       if (!params.flagColor && !params.clearFlag) {

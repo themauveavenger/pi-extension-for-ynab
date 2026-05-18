@@ -24,6 +24,13 @@ export default function createTool(ynabAPI: ynab.API): ToolDefinition<typeof par
     label: 'Approve YNAB Transaction',
     description:
       'Approves a transaction in YNAB and optionally updates its category, memo, or cleared status.',
+    promptSnippet: 'Approve a YNAB transaction and optionally update category, memo, or cleared status.',
+    promptGuidelines: [
+      'Use ynab_approve_transaction after finding a transaction ID with ynab_get_transactions or from an explicit user-provided ID.',
+      'Use ynab_get_payee_history before ynab_approve_transaction when payee history is needed to decide whether approval is safe.',
+      'Do not pass category to ynab_approve_transaction for split transactions; split categories must be handled on subtransactions.',
+      'Use ynab_approve_transaction only when the user has asked to approve or clearly authorized approval.'
+    ],
     parameters: paramsSchema,
     async execute(_toolCallId, params) {
       try {

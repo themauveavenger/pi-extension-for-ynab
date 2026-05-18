@@ -26,6 +26,13 @@ export default function createTool(
     name: 'ynab_move_money',
     label: 'Move YNAB Money',
     description: 'Moves money between YNAB categories by adjusting their assigned amounts for a budget month.',
+    promptSnippet: 'Move money between two YNAB categories by adjusting assigned amounts.',
+    promptGuidelines: [
+      'Use ynab_move_money when the user wants to cover overspending or reallocate funds between categories.',
+      'Use ynab_move_money with dryRun=true before applying changes unless the user explicitly asks to update YNAB now.',
+      'Use ynab_get_categories before ynab_move_money when exact source or destination category names are uncertain.',
+      'Do not use ynab_move_money with allowOverspendSource=true unless the user explicitly authorizes overspending the source category.'
+    ],
     parameters: paramsSchema,
     async execute(_toolCallId, params) {
       if (params.fromCategory === params.toCategory) {

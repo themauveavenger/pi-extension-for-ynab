@@ -14,6 +14,12 @@ export default function createTool(ynabAPI: ynab.API): ToolDefinition<typeof par
     name: 'ynab_delete_transaction',
     label: 'Delete YNAB Transaction',
     description: 'Deletes a transaction from a YNAB budget.',
+    promptSnippet: 'Delete a YNAB transaction by transaction ID.',
+    promptGuidelines: [
+      'Use ynab_delete_transaction only when the user explicitly asks to delete a YNAB transaction.',
+      'Before using ynab_delete_transaction, verify the transaction ID and summarize the transaction being deleted when possible.',
+      'Prefer ynab_get_transactions before ynab_delete_transaction when the transaction ID or target transaction is ambiguous.'
+    ],
     parameters: paramsSchema,
     async execute(_toolCallId, params) {
       try {

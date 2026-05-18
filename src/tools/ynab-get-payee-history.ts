@@ -27,6 +27,12 @@ export default function createTool(ynabAPI: ynab.API): ToolDefinition<typeof par
     label: 'Get YNAB Payee History',
     description:
       'Fetches historical transactions for a payee and computes spending statistics (average, median, min/max, std deviation, frequency) to help decide whether a transaction should be auto-approved.',
+    promptSnippet: 'Analyze historical spending for an exact YNAB payee name.',
+    promptGuidelines: [
+      'Use ynab_get_payee_history before auto-approving or categorizing a recurring payee when amount or category confidence matters.',
+      'Use ynab_get_payee_history only with the exact payee name as it appears in YNAB.',
+      'Use ynab_get_payee_history statistics to explain approval, category, or anomaly decisions.'
+    ],
     parameters: paramsSchema,
     async execute(_toolCallId, params) {
       try {

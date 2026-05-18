@@ -23,6 +23,12 @@ export default function createTool(ynabAPI: ynab.API): ToolDefinition<typeof par
     label: 'Split YNAB Transaction',
     description:
       'Splits an existing YNAB transaction into multiple categories. The transaction must not already be split.',
+    promptSnippet: 'Split an existing unsplit YNAB transaction into multiple categories.',
+    promptGuidelines: [
+      'Use ynab_split_transaction only after identifying the transaction ID with ynab_get_transactions or user-provided evidence.',
+      'Use ynab_split_transaction only for existing transactions that are not already split.',
+      'For ynab_split_transaction, provide at least two category splits and use at most one null amount for the calculated remainder.'
+    ],
     parameters: paramsSchema,
     async execute(_toolCallId, params) {
       try {

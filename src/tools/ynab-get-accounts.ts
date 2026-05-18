@@ -20,6 +20,12 @@ export default function createTool(
     name: 'ynab_get_accounts',
     label: 'Get YNAB Accounts',
     description: 'Fetches YNAB account balances, including cleared and uncleared balances. Defaults to open on-budget accounts.',
+    promptSnippet: 'List YNAB accounts, balances, cleared balances, uncleared balances, and optional import details.',
+    promptGuidelines: [
+      'Use ynab_get_accounts to discover exact account names before creating transactions or transfers.',
+      'Use ynab_get_accounts with includeClosed or includeOffBudget only when the user asks for closed, tracking, or off-budget accounts.',
+      'Use ynab_get_accounts with verbose=true when direct import or reconciliation status matters.'
+    ],
     parameters: paramsSchema,
     async execute(_toolCallId, params) {
       let budgetId: string;

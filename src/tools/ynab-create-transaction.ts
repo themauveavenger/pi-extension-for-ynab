@@ -42,6 +42,13 @@ export default function createTool(ynabAPI: ynab.API): ToolDefinition<typeof par
     label: 'Create YNAB Transaction',
     description:
       'Creates a new transaction in a YNAB budget. Supports regular transactions, transfers between accounts, and split transactions.',
+    promptSnippet: 'Create a YNAB transaction, transfer, or split transaction.',
+    promptGuidelines: [
+      'Use ynab_create_transaction only when the user explicitly asks to create a YNAB transaction, transfer, or split transaction.',
+      'Before using ynab_create_transaction, use ynab_get_accounts or ynab_get_categories when exact account or category names are uncertain.',
+      'For ynab_create_transaction, use negative amounts for outflows/spending and positive amounts for inflows/income.',
+      'For ynab_create_transaction splits, provide at least two splits and use at most one null split amount to calculate the remainder.'
+    ],
     parameters: paramsSchema,
     async execute(_toolCallId, params) {
       try {

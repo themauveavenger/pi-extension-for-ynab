@@ -37,6 +37,13 @@ export default function createTool(
     name: 'ynab_update_category_goal',
     label: 'Update YNAB Category Goal',
     description: 'Updates supported YNAB category goal fields: target amount, target date, and NEED goal whole-amount behavior. Goal type, cadence, and snooze are not supported by the SDK.',
+    promptSnippet: 'Update supported YNAB category goal fields: target amount, target date, or NEED whole-amount behavior.',
+    promptGuidelines: [
+      'Use ynab_update_category_goal only for supported goal fields: target amount, target date, and NEED goal whole-amount behavior.',
+      'Use ynab_update_category_goal with dryRun=true before applying goal changes unless the user explicitly asks to update YNAB now.',
+      'Use ynab_get_categories with includeGoals=true before ynab_update_category_goal when current goal details or exact category names are uncertain.',
+      'Do not use ynab_update_category_goal for unsupported goal changes such as goal type, cadence, or snooze.'
+    ],
     parameters: paramsSchema,
     async execute(_toolCallId, params) {
       if (params.targetAmount !== undefined && params.clearTargetAmount) {

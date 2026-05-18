@@ -41,6 +41,12 @@ export default function createTool(ynabAPI: ynab.API): ToolDefinition<typeof par
     label: 'Get YNAB Transactions',
     description:
       'Fetches transactions from a YNAB budget. Use unapproved=true to find bank imports awaiting review. Use uncleared=true to find manual entries not yet matched.',
+    promptSnippet: 'List recent YNAB transactions by budget, date, approval, cleared status, and limit.',
+    promptGuidelines: [
+      'Use ynab_get_transactions to find transaction IDs before approving, deleting, flagging, or splitting transactions.',
+      'Use ynab_get_transactions with unapproved=true when the user asks to review imported or pending YNAB transactions.',
+      'Use ynab_get_transactions with verbose=true when account, memo, cleared, or approved status matters.'
+    ],
     parameters: paramsSchema,
     async execute(_toolCallId, params) {
       try {

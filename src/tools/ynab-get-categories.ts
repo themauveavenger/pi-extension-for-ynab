@@ -29,6 +29,12 @@ export default function createTool(
     name: 'ynab_get_categories',
     label: 'Get YNAB Categories',
     description: 'Finds YNAB categories and lists assigned, activity, available, overspent status, and optional goal details.',
+    promptSnippet: 'Find YNAB categories with assigned, activity, available, overspending, and optional goal details.',
+    promptGuidelines: [
+      'Use ynab_get_categories to discover exact visible category names before assigning money, moving money, approving transactions, splitting transactions, or updating goals.',
+      'Use ynab_get_categories with onlyOverspent=true when the user asks what needs coverage.',
+      'Use ynab_get_categories with includeGoals=true before updating or explaining category goals.'
+    ],
     parameters: paramsSchema,
     async execute(_toolCallId, params) {
       let budgetId: string;

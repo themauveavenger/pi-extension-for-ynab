@@ -69,6 +69,13 @@ export default function createTool(
     name: 'ynab_assign_money',
     label: 'Assign YNAB Money',
     description: 'Sets or adjusts the assigned amount for a YNAB category in a budget month.',
+    promptSnippet: 'Set or adjust the assigned amount for one YNAB category in a budget month.',
+    promptGuidelines: [
+      'Use ynab_assign_money when the user wants to set a category assigned amount or add/subtract from assigned funds.',
+      'Use ynab_assign_money with dryRun=true before applying changes unless the user explicitly asks to update YNAB now.',
+      'Use exactly one of assignedAmount or deltaAmount with ynab_assign_money.',
+      'Use ynab_get_categories before ynab_assign_money when the exact visible category name is uncertain.'
+    ],
     parameters: paramsSchema,
     async execute(_toolCallId, params) {
       if ((params.assignedAmount === undefined && params.deltaAmount === undefined)

@@ -17,6 +17,11 @@ export default function createTool(
     name: 'ynab_get_budget_month',
     label: 'Get YNAB Budget Month',
     description: 'Fetches high-level budget month status, including Ready to Assign and category availability counts.',
+    promptSnippet: 'Summarize a YNAB budget month: Ready to Assign, assigned, activity, overspending, and available funds.',
+    promptGuidelines: [
+      'Use ynab_get_budget_month before budgeting changes when the user asks for month-level budget status.',
+      'Use ynab_get_budget_month to check Ready to Assign and overspent category counts before assigning or moving money.'
+    ],
     parameters: paramsSchema,
     async execute(_toolCallId, params) {
       let budgetId: string;
