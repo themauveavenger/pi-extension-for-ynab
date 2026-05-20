@@ -13,6 +13,7 @@ import ynabGetAccountsTool from './tools/ynab-get-accounts.js';
 import ynabAssignMoneyTool from './tools/ynab-assign-money.js';
 import ynabMoveMoneyTool from './tools/ynab-move-money.js';
 import ynabUpdateCategoryGoalTool from './tools/ynab-update-category-goal.js';
+import ynabPayeesListTool from './tools/ynab-payees-list.js';
 import { createBudgetIdResolver } from './config.js';
 import { YnabClient, createYnabClientFromEnv } from './ynab-client.js';
 
@@ -52,6 +53,7 @@ export function createYnabExtension(options: YnabExtensionOptions = {}) {
     pi.registerTool(ynabAssignMoneyTool(ynabAPI, resolveBudgetId));
     pi.registerTool(ynabMoveMoneyTool(ynabAPI, resolveBudgetId));
     pi.registerTool(ynabUpdateCategoryGoalTool(ynabAPI, resolveBudgetId));
+    pi.registerTool(ynabPayeesListTool(ynabAPI, resolveBudgetId));
   };
 }
 

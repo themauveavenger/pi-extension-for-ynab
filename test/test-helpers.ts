@@ -65,6 +65,15 @@ export function makeTransactionDetail(overrides: Partial<ynab.TransactionDetail>
   };
 }
 
+export function makePayee(overrides: Partial<ynab.Payee> = {}): ynab.Payee {
+  return {
+    id: 'pay-1',
+    name: 'Test Payee',
+    deleted: false,
+    ...overrides
+  };
+}
+
 export function makeHybridTransaction(overrides: Partial<ynab.HybridTransaction> = {}): ynab.HybridTransaction {
   return {
     id: 'txn-1',
